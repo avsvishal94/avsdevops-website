@@ -158,8 +158,10 @@ jobs:
         run: |
           npm install -g svgo
           if [ -d "icons" ]; then
-            svgo -f icons/ -q
-            echo "SVGs optimized: $(ls icons/*.svg | wc -l) files"
+            for svg in icons/*.svg; do
+              svgo "$svg" -q 2>/dev/null && echo "Optimized: $svg" || echo "Skipped (invalid): $svg"
+            done
+            echo "SVG optimization complete."
           fi
 
       - name: Generate sitemap.xml
