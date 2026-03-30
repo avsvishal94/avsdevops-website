@@ -40,19 +40,6 @@ Automated using GitHub Actions:
 * ✅ Deployment to GitHub Pages
 * ✅ Post-deployment smoke testing
 
----
-
-## 🌍 Domain Setup
-
-| Record Type | Value                       |
-| ----------- | --------------------------- |
-| A Record    | 185.199.108.153             |
-| A Record    | 185.199.109.153             |
-| A Record    | 185.199.110.153             |
-| A Record    | 185.199.111.153             |
-| CNAME       | www → avsvishal94.github.io |
-
----
 
 ## 📂 Project Structure
 
