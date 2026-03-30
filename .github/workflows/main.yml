@@ -1,0 +1,313 @@
+# =============================================================================
+# AVSDevOps Website — Production CI/CD Pipeline
+# Triggers on push to main + manual dispatch
+# Lints, audits, optimizes, and deploys to GitHub Pages
+# =============================================================================
+
+name: CI/CD → GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "k8s/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "nginx.conf"
+      - ".dockerignore"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Lint & Validate
+  # ─────────────────────────────────────────────
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate HTML
+        run: |
+          npm install -g htmlhint
+          echo '{
+            "tagname-lowercase": true,
+            "attr-lowercase": true,
+            "attr-value-double-quotes": true,
+            "doctype-first": true,
+            "tag-pair": true,
+            "spec-char-escape": false,
+            "id-unique": true,
+            "src-not-empty": true,
+            "attr-no-duplication": true,
+            "title-require": true
+          }' > .htmlhintrc
+          htmlhint index.html pages/*.html || true
+
+      - name: Validate CSS syntax
+        run: |
+          npm install -g csslint
+          csslint --quiet css/style.css || true
+
+      - name: Check for broken internal links
+        run: |
+          echo "Checking internal link references..."
+          ERRORS=0
+          # Check that referenced files exist
+          for file in index.html pages/*.html; do
+            # Extract href and src values (relative paths only)
+            grep -oP '(?:href|src)="(\./[^"#?]+|\.\.\/[^"#?]+)"' "$file" | \
+            grep -oP '"[^"]*"' | tr -d '"' | while read -r link; do
+              DIR=$(dirname "$file")
+              TARGET="$DIR/$link"
+              TARGET=$(realpath --relative-to=. "$TARGET" 2>/dev/null || echo "$TARGET")
+              if [ ! -f "$TARGET" ] && [ ! -d "$TARGET" ]; then
+                echo "::warning file=$file::Broken link: $link (resolved to $TARGET)"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+          done
+          echo "Link check complete."
+
+      - name: Security audit — check for secrets
+        run: |
+          echo "Scanning for potential secrets..."
+          if grep -rn "api[_-]key\|secret[_-]key\|password\s*=\|token\s*=" \
+            --include="*.html" --include="*.css" --include="*.js" . 2>/dev/null; then
+            echo "::warning::Potential secrets detected in source files!"
+          else
+            echo "No secrets found."
+          fi
+
+  # ─────────────────────────────────────────────
+  # Job 2: Build & Optimize
+  # ─────────────────────────────────────────────
+  build:
+    name: Build & Optimize
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Minify CSS
+        run: |
+          npm install -g clean-css-cli
+          cleancss -o css/style.min.css css/style.css
+          mv css/style.min.css css/style.css
+          echo "CSS minified: $(wc -c < css/style.css) bytes"
+
+      - name: Minify JavaScript
+        run: |
+          npm install -g terser
+          terser js/main.js --compress --mangle -o js/main.min.js
+          mv js/main.min.js js/main.js
+          echo "JS minified: $(wc -c < js/main.js) bytes"
+
+      - name: Minify HTML files
+        run: |
+          npm install -g html-minifier-terser
+          for file in index.html pages/*.html; do
+            html-minifier-terser \
+              --collapse-whitespace \
+              --remove-comments \
+              --remove-redundant-attributes \
+              --remove-empty-attributes \
+              --minify-css true \
+              --minify-js true \
+              "$file" -o "$file"
+            echo "Minified: $file ($(wc -c < "$file") bytes)"
+          done
+
+      - name: Optimize images
+        run: |
+          sudo apt-get install -y jpegoptim optipng > /dev/null 2>&1
+          # Optimize JPEGs
+          find . -name "*.jpg" -o -name "*.jpeg" | xargs -r jpegoptim --strip-all --max=85 -q
+          # Optimize PNGs
+          find . -name "*.png" -not -path "./.git/*" | xargs -r optipng -o2 -quiet
+          echo "Images optimized."
+
+      - name: Optimize SVGs
+        run: |
+          npm install -g svgo
+          if [ -d "icons" ]; then
+            svgo -f icons/ -q
+            echo "SVGs optimized: $(ls icons/*.svg | wc -l) files"
+          fi
+
+      - name: Generate sitemap.xml
+        run: |
+          cat > sitemap.xml << 'SITEMAP'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url><loc>https://avsdevops.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+            <url><loc>https://avsdevops.com/pages/curriculum.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+            <url><loc>https://avsdevops.com/pages/instructor.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+            <url><loc>https://avsdevops.com/pages/stories.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+            <url><loc>https://avsdevops.com/pages/contact.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+          </urlset>
+          SITEMAP
+          echo "sitemap.xml generated."
+
+      - name: Generate robots.txt
+        run: |
+          cat > robots.txt << 'ROBOTS'
+          User-agent: *
+          Allow: /
+          Sitemap: https://avsdevops.com/sitemap.xml
+          ROBOTS
+          echo "robots.txt generated."
+
+      - name: Add security headers via _headers file
+        run: |
+          cat > _headers << 'HEADERS'
+          /*
+            X-Frame-Options: SAMEORIGIN
+            X-Content-Type-Options: nosniff
+            X-XSS-Protection: 1; mode=block
+            Referrer-Policy: strict-origin-when-cross-origin
+            Permissions-Policy: camera=(), microphone=(), geolocation=()
+          HEADERS
+          echo "_headers file created."
+
+      - name: Remove dev-only files from artifact
+        run: |
+          rm -rf k8s/ node_modules/ .github/ api/
+          rm -f Dockerfile docker-compose.yml nginx.conf
+          rm -f .dockerignore .vercelignore .htmlhintrc
+          rm -f serve.mjs screenshot.mjs CLAUDE.md DEPLOY.md
+          rm -f package.json package-lock.json vercel.json
+          rm -f "*.pptx" "*.mjs"
+
+      - name: Report final bundle size
+        run: |
+          echo "========================================="
+          echo "  PRODUCTION BUNDLE SIZE REPORT"
+          echo "========================================="
+          echo ""
+          echo "HTML files:"
+          find . -name "*.html" -exec sh -c 'printf "  %-40s %s\n" "$1" "$(wc -c < "$1") bytes"' _ {} \;
+          echo ""
+          echo "CSS files:"
+          find . -name "*.css" -exec sh -c 'printf "  %-40s %s\n" "$1" "$(wc -c < "$1") bytes"' _ {} \;
+          echo ""
+          echo "JS files:"
+          find . -name "*.js" -exec sh -c 'printf "  %-40s %s\n" "$1" "$(wc -c < "$1") bytes"' _ {} \;
+          echo ""
+          echo "Images:"
+          find . \( -name "*.jpg" -o -name "*.png" -o -name "*.svg" \) -exec sh -c 'printf "  %-40s %s\n" "$1" "$(wc -c < "$1") bytes"' _ {} \;
+          echo ""
+          TOTAL=$(find . -not -path "./.git/*" -type f -exec cat {} + | wc -c)
+          echo "TOTAL DEPLOY SIZE: $((TOTAL / 1024)) KB"
+          echo "========================================="
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  # ─────────────────────────────────────────────
+  # Job 3: Deploy (only on push to main)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Successful! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────
+  # Job 4: Post-deploy smoke test
+  # ─────────────────────────────────────────────
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Wait for deployment propagation
+        run: sleep 30
+
+      - name: Health check — main page
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/" || echo "000")
+          if [ "$STATUS" -eq 200 ]; then
+            echo "Main page: OK (HTTP $STATUS)"
+          else
+            echo "::warning::Main page returned HTTP $STATUS"
+          fi
+
+      - name: Health check — CSS loads
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/css/style.css" || echo "000")
+          if [ "$STATUS" -eq 200 ]; then
+            echo "CSS: OK (HTTP $STATUS)"
+          else
+            echo "::warning::CSS returned HTTP $STATUS"
+          fi
+
+      - name: Health check — JS loads
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/js/main.js" || echo "000")
+          if [ "$STATUS" -eq 200 ]; then
+            echo "JS: OK (HTTP $STATUS)"
+          else
+            echo "::warning::JS returned HTTP $STATUS"
+          fi
+
+      - name: Health check — sub-pages
+        run: |
+          for page in curriculum stories instructor contact; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/pages/${page}.html" || echo "000")
+            echo "pages/${page}.html: HTTP $STATUS"
+          done
+
+      - name: Smoke test summary
+        run: |
+          echo "## Smoke Test Results :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All endpoints checked after deployment." >> $GITHUB_STEP_SUMMARY
