@@ -45,26 +45,76 @@ Automated using GitHub Actions:
 
 ```
 .
-├── index.html
-├── assets/
-│   ├── css/
-│   ├── js/
-│   └── images/
+├── CLAUDE.md
 ├── CNAME
-└── .github/workflows/
+├── DEPLOY.md
+├── Dockerfile
+├── README.md
+├── api
+│   └── health.js
+├── bg_images
+│   └── landing-page.jpg
+├── brand_assets
+│   ├── avsdevops.png
+│   └── avsdevops_brand_guidelines-1.png
+├── css
+│   └── style.css
+├── docker-compose.yml
+├── icons
+│   ├── ansible.svg
+│   ├── argocd.svg
+│   ├── aws.svg
+│   ├── azure.svg
+│   ├── briefcase.svg
+│   ├── check-circle.svg
+│   ├── chevron-down.svg
+│   ├── cpu.svg
+│   ├── docker.svg
+│   ├── elastic.svg
+│   ├── git.svg
+│   ├── github.svg
+│   ├── githubactions.svg
+│   ├── gitlab.svg
+│   ├── graduation-cap.svg
+│   ├── grafana.svg
+│   ├── helm.svg
+│   ├── jenkins.svg
+│   ├── kubernetes.svg
+│   ├── linux.svg
+│   ├── mlflow.svg
+│   ├── openai.svg
+│   ├── prometheus.svg
+│   ├── python.svg
+│   ├── pytorch.svg
+│   ├── shield-check.svg
+│   ├── sonarqube.svg
+│   ├── terminal-square.svg
+│   ├── terraform.svg
+│   └── users.svg
+├── index.html
+├── js
+│   └── main.js
+├── k8s
+│   ├── deployment.yaml
+│   ├── hpa.yaml
+│   ├── ingress.yaml
+│   ├── namespace.yaml
+│   └── service.yaml
+├── nginx.conf
+├── package-lock.json
+├── package.json
+├── pages
+│   ├── contact.html
+│   ├── curriculum.html
+│   ├── instructor.html
+│   └── stories.html
+├── screenshot.mjs
+├── serve.mjs
+└── vercel.json
+
+9 directories, 58 files
+
 ```
-
----
-
-## 🛠️ Local Development
-
-```bash
-git clone https://github.com/avsvishal94/avsdevops-website.git
-cd avsdevops-website
-open index.html
-```
-
----
 
 ## 📈 Future Improvements
 
