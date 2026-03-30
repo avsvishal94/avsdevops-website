@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: avsdevops
+  labels:
+    app.kubernetes.io/name: avsdevops-website
+    app.kubernetes.io/part-of: avsdevops
