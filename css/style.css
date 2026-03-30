@@ -852,6 +852,7 @@ a, button, [role="button"], label, input, select, textarea {
 body[data-bg="1"]::before { background-image: url('../bg_images/landing-page-1.jpg'); }
 body[data-bg="2"]::before { background-image: url('../bg_images/landing-page-2.jpg'); }
 body[data-bg="3"]::before { background-image: url('../bg_images/landing-page-3.jpg'); }
+body[data-bg="4"]::before { background-image: url('../bg_images/landing-page-4.jpg'); }
 
 /* ====================================================================
    INSTRUCTOR PAGE — responsive layout
