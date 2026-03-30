@@ -11,10 +11,7 @@ on:
     branches: [main]
     paths-ignore:
       - "**.md"
-      - "k8s/**"
-      - "Dockerfile"
-      - "docker-compose.yml"
-      - "nginx.conf"
+      - "microservices/**"
       - ".dockerignore"
   pull_request:
     branches: [main]
@@ -30,7 +27,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
+  # Opt into Node.js 24 runtime now (avoids deprecation warnings before June 2026 forced cutover)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   # ─────────────────────────────────────────────
@@ -201,8 +200,7 @@ jobs:
 
       - name: Remove dev-only files from artifact
         run: |
-          rm -rf k8s/ node_modules/ .github/ api/
-          rm -f Dockerfile docker-compose.yml nginx.conf
+          rm -rf microservices/ node_modules/ .github/ api/
           rm -f .dockerignore .vercelignore .htmlhintrc
           rm -f serve.mjs screenshot.mjs CLAUDE.md DEPLOY.md
           rm -f package.json package-lock.json vercel.json
@@ -276,7 +274,7 @@ jobs:
 
       - name: Health check — main page
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/" || echo "000")
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "https://avsdevops.com/" || echo "000")
           if [ "$STATUS" -eq 200 ]; then
             echo "Main page: OK (HTTP $STATUS)"
           else
@@ -285,7 +283,7 @@ jobs:
 
       - name: Health check — CSS loads
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/css/style.css" || echo "000")
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "https://avsdevops.com/css/style.css" || echo "000")
           if [ "$STATUS" -eq 200 ]; then
             echo "CSS: OK (HTTP $STATUS)"
           else
@@ -294,7 +292,7 @@ jobs:
 
       - name: Health check — JS loads
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/js/main.js" || echo "000")
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "https://avsdevops.com/js/main.js" || echo "000")
           if [ "$STATUS" -eq 200 ]; then
             echo "JS: OK (HTTP $STATUS)"
           else
@@ -304,7 +302,7 @@ jobs:
       - name: Health check — sub-pages
         run: |
           for page in curriculum stories instructor contact; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://avsvishal94.github.io/avsdevops-website/pages/${page}.html" || echo "000")
+            STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "https://avsdevops.com/pages/${page}.html" || echo "000")
             echo "pages/${page}.html: HTTP $STATUS"
           done
 
