@@ -809,6 +809,76 @@ a, button, [role="button"], label, input, select, textarea {
   h1 { font-size: 1.8rem; }
 }
 
+/* ====================================================================
+   HERO BACKGROUND SLIDESHOW — cross-fades between 4 images
+   Total cycle: 24s (6s per image)
+   ==================================================================== */
+.hero-slideshow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  animation: heroSlideshow 24s ease infinite;
+}
+.hero-slide:nth-child(1) { animation-delay: 0s; }
+.hero-slide:nth-child(2) { animation-delay: 6s; }
+.hero-slide:nth-child(3) { animation-delay: 12s; }
+.hero-slide:nth-child(4) { animation-delay: 18s; }
+
+@keyframes heroSlideshow {
+  0%   { opacity: 0; }
+  4%   { opacity: 1; }
+  25%  { opacity: 1; }
+  29%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* When slideshow is present, remove static hero background */
+.hero:has(.hero-slideshow) {
+  background-image: none;
+}
+
+/* ====================================================================
+   PAGE-SPECIFIC BACKGROUNDS — each subpage gets a unique image
+   Set data-bg="1|2|3" on <body> to activate
+   ==================================================================== */
+body[data-bg="1"]::before { background-image: url('../bg_images/landing-page-1.jpg'); }
+body[data-bg="2"]::before { background-image: url('../bg_images/landing-page-2.jpg'); }
+body[data-bg="3"]::before { background-image: url('../bg_images/landing-page-3.jpg'); }
+
+/* ====================================================================
+   INSTRUCTOR PAGE — responsive layout
+   ==================================================================== */
+.instructor-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 48px;
+  align-items: start;
+}
+.expertise-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .instructor-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .expertise-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- Print baseline (in case anyone prints a page) --- */
 @media print {
   .nav, .nav-hamburger, .mobile-menu, .btn, footer { display: none !important; }
