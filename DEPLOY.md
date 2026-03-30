@@ -115,7 +115,7 @@ git init
 git add .
 git commit -m "Initial commit — AVSDevOps website"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/avsdevops-website.git
+git remote add origin https://github.com/avsvishal94/avsdevops-website.git
 git push -u origin main
 ```
 
@@ -142,9 +142,9 @@ git push -u origin main
 | A     | @    | 185.199.109.153              | 600  |
 | A     | @    | 185.199.110.153              | 600  |
 | A     | @    | 185.199.111.153              | 600  |
-| CNAME | www  | YOUR_USERNAME.github.io      | 600  |
+| CNAME | www  | avsvishal94.github.io        | 600  |
 
-> These are GitHub's official Pages IPs. Replace `YOUR_USERNAME` with your GitHub username.
+> These are GitHub's official Pages IPs.
 
 ### Step 2: Add domain in GitHub
 1. Go to your repo → **Settings** → **Pages**
