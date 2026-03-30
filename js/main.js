@@ -70,7 +70,10 @@
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const data = new FormData(form);
-        const entries = Object.fromEntries(data.entries());
+        // Object.fromEntries polyfill for older browsers
+        const entries = typeof Object.fromEntries === 'function'
+          ? Object.fromEntries(data.entries())
+          : Array.from(data.entries()).reduce((o, [k, v]) => { o[k] = v; return o; }, {});
         // Show success
         const btn = form.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
@@ -104,6 +107,12 @@
   // ─── Scroll Animations ───
   const ScrollReveal = {
     init() {
+      const els = document.querySelectorAll('.reveal');
+      // Fallback: if IntersectionObserver is not supported, just show all elements
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; });
+        return;
+      }
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -114,7 +123,7 @@
         });
       }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
-      document.querySelectorAll('.reveal').forEach(el => {
+      els.forEach(el => {
         el.style.opacity = '0';
         el.style.transform = 'translateY(20px)';
         el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';

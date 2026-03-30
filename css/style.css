@@ -50,7 +50,17 @@
 }
 
 /* === BASE === */
-html { scroll-behavior: smooth; font-size: 16px; }
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  /* Prevent iOS/Android text inflation */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Firefox native scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(50 170 255 / 0.3) transparent;
+}
 body {
   font-family: var(--font-body);
   background: rgb(var(--canvas));
@@ -59,6 +69,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.65;
   min-height: 100vh;
+  min-height: 100svh; /* iOS dynamic viewport — last value wins in supporting browsers */
 }
 
 /* === FIXED BACKGROUND IMAGE === */
@@ -166,13 +177,27 @@ main { position: relative; z-index: 1; }
 }
 .nav-hamburger:hover { background: rgb(var(--surface-subtle)); }
 .mobile-menu {
-  display: none; position: fixed; top: 90px; left: 0; right: 0; bottom: 0;
+  display: flex; /* always flex — visibility controlled via opacity/visibility */
+  position: fixed; top: 90px; left: 0; right: 0; bottom: 0;
   background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   padding: 24px; z-index: 99;
   flex-direction: column; gap: 8px; overflow-y: auto;
+  overscroll-behavior: contain;
+  /* hidden state */
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0.22s;
 }
-.mobile-menu.open { display: flex; }
+.mobile-menu.open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0s;
+}
 .mobile-menu .nav-link { padding: 14px 16px; font-size: 16px; width: 100%; border-radius: var(--radius-md); }
 
 /* Theme toggle removed — dark mode only */
@@ -309,7 +334,9 @@ main { position: relative; z-index: 1; }
 
 /* === HERO === */
 .hero {
-  min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  min-height: 100vh;
+  min-height: 100svh; /* iOS dynamic viewport */
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
   padding: 120px 0 80px; text-align: center; position: relative; overflow: hidden;
   background: url('../bg_images/landing-page.jpg') center center / cover no-repeat;
 }
@@ -681,4 +708,110 @@ main { position: relative; z-index: 1; }
 
 .expertise-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+}
+
+/* ====================================================================
+   CROSS-BROWSER & MOBILE COMPATIBILITY LAYER
+   Covers: Firefox, Safari/iOS, Chrome/Android, Edge, Samsung Internet
+   ==================================================================== */
+
+/* --- Remove blue tap flash on iOS/Android --- */
+a, button, [role="button"], label, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Touch-action on interactive elements (prevents 300ms delay) --- */
+.btn, button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* --- Nav: safe-area insets for notched/island devices --- */
+.nav {
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
+
+/* --- Footer: bottom safe-area for home-indicator on iOS --- */
+.footer {
+  padding-bottom: max(32px, calc(32px + env(safe-area-inset-bottom)));
+}
+
+/* --- Hide desktop "Enquire Now" button on mobile (it's in the mobile menu) --- */
+@media (max-width: 768px) {
+  .nav-actions { display: none; }
+  /* Scale down oversized logo in nav on mobile */
+  .nav-logo img { height: 60px; }
+}
+
+/* --- Form elements: cross-browser appearance reset --- */
+.form-input, .form-textarea, .form-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Custom dropdown chevron for <select> (replaces native OS arrow) */
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236a7898' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 42px;
+}
+
+/* --- Prevent iOS auto-zoom on input focus (requires >= 16px) --- */
+@media (max-width: 768px) {
+  .form-input, .form-textarea, .form-select { font-size: 16px; }
+}
+
+/* --- Backdrop-filter: opaque fallback for unsupported browsers --- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nav             { background: rgb(5 6 10 / 0.98); }
+  .mobile-menu     { background: rgb(5 6 10 / 0.98); }
+  .card            { background: rgb(12 14 20 / 0.97); }
+  .card-inner      { background: rgb(18 20 28 / 0.97); }
+  .price-card      { background: rgb(12 14 20 / 0.97); }
+  .module-card     { background: rgb(12 14 20 / 0.97); }
+  .faq-item        { background: rgb(12 14 20 / 0.97); }
+  .trust-item      { background: rgb(12 14 20 / 0.97); }
+  .stat-item       { background: rgb(12 14 20 / 0.97); }
+  .pill            { background: rgb(18 20 28 / 0.97); }
+  .currency-toggle { background: rgb(18 20 28 / 0.97); }
+  .footer          { background: rgb(5 6 10 / 0.98); }
+  .instructor-profile { background: rgb(12 14 20 / 0.97); }
+}
+
+/* --- Nav hamburger keyboard focus ring --- */
+.nav-hamburger:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 3px;
+}
+
+/* --- Instructor profile padding on mobile --- */
+@media (max-width: 768px) {
+  .instructor-profile { padding: 28px 20px; }
+}
+
+/* --- Extra-small screens (320–360px phones) --- */
+@media (max-width: 360px) {
+  h1 { font-size: 2rem; }
+  .hero-logo { width: 160px; height: 160px; }
+  .container, .container-sm, .container-lg { padding: 0 16px; }
+  .section { padding: 48px 0; }
+  .btn-lg { padding: 13px 24px; font-size: 14px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .nav-logo-tagline { display: none; } /* too cramped at 320px */
+}
+
+/* --- Landscape phones: shrink hero padding to avoid nav overlap --- */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero { padding: 100px 0 40px; min-height: auto; }
+  .hero-logo { width: 120px; height: 120px; margin-bottom: 16px; }
+  h1 { font-size: 1.8rem; }
+}
+
+/* --- Print baseline (in case anyone prints a page) --- */
+@media print {
+  .nav, .nav-hamburger, .mobile-menu, .btn, footer { display: none !important; }
+  body { background: white; color: black; }
+  a { color: black; text-decoration: underline; }
 }
