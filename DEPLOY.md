@@ -12,15 +12,16 @@ avsdevops-website/
 ├── brand_assets/           # Logo + brand guidelines
 ├── bg_images/              # Hero background image
 ├── api/health.js           # Vercel serverless health endpoint
-├── Dockerfile              # Multi-stage production build
-├── docker-compose.yml      # Docker Compose for local dev
-├── nginx.conf              # Production nginx config
-├── k8s/                    # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   └── hpa.yaml
+├── microservices/          # Docker & Kubernetes deployment configs
+│   ├── Dockerfile          # Multi-stage production build
+│   ├── docker-compose.yml  # Docker Compose (run from project root)
+│   ├── nginx.conf          # Production nginx config
+│   └── k8s/               # Kubernetes manifests
+│       ├── namespace.yaml
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       ├── ingress.yaml
+│       └── hpa.yaml
 ├── vercel.json             # Vercel deployment config
 └── .vercelignore           # Files excluded from Vercel
 ```
@@ -30,11 +31,11 @@ avsdevops-website/
 ## 1. Docker — Local Build & Run
 
 ```bash
-# Build the image
-docker build -t avsdevops-website:latest .
+# Build the image (run from project root)
+docker build -f microservices/Dockerfile -t avsdevops-website:latest .
 
-# Run with Docker Compose (recommended)
-docker compose up -d --build
+# Run with Docker Compose (recommended, run from project root)
+docker compose -f microservices/docker-compose.yml up -d --build
 
 # Or run standalone
 docker run -p 8080:8080 --name avsdevops-web avsdevops-website:latest
@@ -44,7 +45,7 @@ curl http://localhost:8080/health
 # → {"status":"ok"}
 
 # Stop
-docker compose down
+docker compose -f microservices/docker-compose.yml down
 ```
 
 ---
@@ -66,8 +67,8 @@ minikube start --driver=docker
 minikube image load avsdevops-website:latest
 
 # Apply all K8s manifests
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/
+kubectl apply -f microservices/k8s/namespace.yaml
+kubectl apply -f microservices/k8s/
 
 # Check status
 kubectl get all -n avsdevops

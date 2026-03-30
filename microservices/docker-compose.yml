@@ -3,8 +3,8 @@ version: "3.9"
 services:
   avsdevops-web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: microservices/Dockerfile
     image: avsdevops-website:latest
     container_name: avsdevops-web
     ports:

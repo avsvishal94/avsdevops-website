@@ -18,7 +18,7 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 # Copy custom nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY microservices/nginx.conf /etc/nginx/nginx.conf
 
 # Copy static site files
 COPY --from=builder /app/index.html /usr/share/nginx/html/
